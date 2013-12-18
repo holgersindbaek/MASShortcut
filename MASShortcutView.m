@@ -1,5 +1,6 @@
 #import "MASShortcutView.h"
 #import "MASShortcut.h"
+#import "NSImage+RHResizableImageAdditions.h"
 
 #define HINT_BUTTON_WIDTH 23.0
 #define BUTTON_FONT_SIZE 11.0
@@ -30,6 +31,10 @@
 @synthesize shortcutValueChange = _shortcutValueChange;
 @synthesize recording = _recording;
 @synthesize appearance = _appearance;
+@synthesize background_image = _background_image;
+@synthesize background_image_down = _background_image_down;
+@synthesize font = _font;
+@synthesize textColor = _textColor;
 
 #pragma mark -
 
@@ -38,8 +43,9 @@
     self = [super initWithFrame:frameRect];
     if (self) {
         _shortcutCell = [[NSButtonCell alloc] init];
-        _shortcutCell.buttonType = NSPushOnPushOffButton;
-        _shortcutCell.font = [[NSFontManager sharedFontManager] convertFont:_shortcutCell.font toSize:BUTTON_FONT_SIZE];
+        _shortcutCell.buttonType = NSMomentaryChangeButton;
+        _shortcutCell.bordered = NO;
+        _shortcutCell.font = _font;
         _enabled = YES;
         [self resetShortcutCellStyle];
     }
@@ -77,11 +83,11 @@
 {
     switch (_appearance) {
         case MASShortcutViewAppearanceDefault: {
-            _shortcutCell.bezelStyle = NSRoundRectBezelStyle;
+            _shortcutCell.bezelStyle = NSRoundedBezelStyle;
             break;
         }
         case MASShortcutViewAppearanceTexturedRect: {
-            _shortcutCell.bezelStyle = NSTexturedRoundedBezelStyle;
+            _shortcutCell.bezelStyle = NSRoundedBezelStyle;
             break;
         }
         case MASShortcutViewAppearanceRounded: {
@@ -144,17 +150,30 @@
     _shortcutCell.state = state;
     _shortcutCell.enabled = self.enabled;
 
+    NSMutableAttributedString *attrTitle = [[NSMutableAttributedString alloc]
+                                 initWithAttributedString:[_shortcutCell attributedTitle]];
+    NSUInteger len = [attrTitle length];
+    NSRange range = NSMakeRange(0, (int)len);
+    [attrTitle addAttribute:NSForegroundColorAttributeName
+                      value:_textColor
+                      range:range];
+    [attrTitle addAttribute:NSFontAttributeName
+                      value:_font
+                      range:range];
+    [attrTitle fixAttributesInRange:range];
+    [_shortcutCell setAttributedTitle:attrTitle];
+
     switch (_appearance) {
         case MASShortcutViewAppearanceDefault: {
-            [_shortcutCell drawWithFrame:frame inView:self];
+            [_shortcutCell drawWithFrame:CGRectOffset(frame, 0.0, 0.0) inView:self];
             break;
         }
         case MASShortcutViewAppearanceTexturedRect: {
-            [_shortcutCell drawWithFrame:CGRectOffset(frame, 0.0, 1.0) inView:self];
+            [_shortcutCell drawWithFrame:CGRectOffset(frame, 10.0, 10.0) inView:self];
             break;
         }
         case MASShortcutViewAppearanceRounded: {
-            [_shortcutCell drawWithFrame:CGRectOffset(frame, 0.0, 1.0) inView:self];
+            [_shortcutCell drawWithFrame:CGRectOffset(frame, 10.0, 10.0) inView:self];
             break;
         }
     }
@@ -162,9 +181,10 @@
 
 - (void)drawRect:(CGRect)dirtyRect
 {
+    
     if (self.shortcutValue) {
-        [self drawInRect:self.bounds withTitle:MASShortcutChar(self.recording ? kMASShortcutGlyphEscape : kMASShortcutGlyphDeleteLeft)
-               alignment:NSRightTextAlignment state:NSOffState];
+        [_background_image drawInRect:dirtyRect fromRect:dirtyRect operation:NSCompositeSourceOver fraction:1 respectFlipped:YES hints:nil];
+        [self drawInRect:CGRectOffset(self.bounds, -10.0, 0.0) withTitle:MASShortcutChar(self.recording ? kMASShortcutGlyphEscape : kMASShortcutGlyphDeleteLeft) alignment:NSRightTextAlignment state:NSOffState];
         
         CGRect shortcutRect;
         [self getShortcutRect:&shortcutRect hintRect:NULL];
@@ -180,7 +200,8 @@
     else {
         if (self.recording)
         {
-            [self drawInRect:self.bounds withTitle:MASShortcutChar(kMASShortcutGlyphEscape) alignment:NSRightTextAlignment state:NSOffState];
+            [_background_image_down drawInRect:dirtyRect fromRect:dirtyRect operation:NSCompositeSourceOver fraction:1 respectFlipped:YES hints:nil];
+            [self drawInRect:CGRectOffset(self.bounds, -10.0, 0.0) withTitle:MASShortcutChar(kMASShortcutGlyphEscape) alignment:NSRightTextAlignment state:NSOffState];
             
             CGRect shortcutRect;
             [self getShortcutRect:&shortcutRect hintRect:NULL];
@@ -193,8 +214,8 @@
         }
         else
         {
-            [self drawInRect:self.bounds withTitle:NSLocalizedString(@"Record Shortcut", @"Empty shortcut button in normal state")
-                   alignment:NSCenterTextAlignment state:NSOffState];
+            [_background_image drawInRect:dirtyRect fromRect:dirtyRect operation:NSCompositeSourceOver fraction:1 respectFlipped:YES hints:nil];
+            [self drawInRect:self.bounds withTitle:NSLocalizedString(@"Record Shortcut", @"Empty shortcut button in normal state") alignment:NSCenterTextAlignment state:NSOffState];
         }
     }
 }
